@@ -2,6 +2,8 @@ export { useAccountSwitcher } from './useAccountSwitcher';
 export { useActiveDerivTradingAccount } from './useActiveDerivTradingAccount';
 export { useAvailableMT5Accounts } from './useAvailableMT5Accounts';
 export { useBalance } from './useBalance';
+export { useDerivSession } from './useDerivSession';
+export { useLiveDerivBalance } from './useLiveDerivBalance';
 export { useCreateOtherCFDAccount } from './useCreateOtherCFDAccount';
 export { useCFDAccountsList } from './useCFDAccountsList';
 export { useCFDCompareAccounts } from './useCFDCompareAccounts';

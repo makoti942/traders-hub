@@ -1,30 +1,22 @@
 import { CurrencyConstants, FormatUtils } from '@deriv-com/utils';
 
-import { useActiveDerivTradingAccount } from './useActiveDerivTradingAccount';
-import { useCFDAssets } from './useCFDAssets';
-import { usePlatformAssets } from './usePlatformAssets';
+import { useLiveDerivBalance } from './useLiveDerivBalance';
 
 /**
- *
- * @description This hook is used to get the total balance of the all the assets.
- * @example
- * const { formattedTotalBalance } = useTotalAssets();
+ * Total assets from live Deriv trading balances.
  */
 export const useTotalAssets = () => {
-    const { calculatedDemoBalance, calculatedRealBalance } = useCFDAssets();
-    const { data: activeTrading } = useActiveDerivTradingAccount();
-    const { totalDerivTradingAccountBalance, fiatCurrency } = usePlatformAssets();
+    const { accounts, activeAccount, activeBalance, isAuthorized } = useLiveDerivBalance();
     const { formatMoney } = FormatUtils;
 
-    const totalDemoBalance = calculatedDemoBalance + totalDerivTradingAccountBalance.demo;
+    const totalBalance = isAuthorized
+        ? accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0) || activeBalance
+        : 0;
 
-    const totalRealBalance = calculatedRealBalance + totalDerivTradingAccountBalance.real;
+    const currency = (activeAccount?.currency || 'USD') as CurrencyConstants.Currency;
+    const formattedTotalBalance = isAuthorized
+        ? `${formatMoney(totalBalance, { currency })} ${currency}`
+        : '';
 
-    const totalBalance = activeTrading?.isVirtual ? totalDemoBalance : totalRealBalance;
-
-    const formattedTotalBalance = `${formatMoney(totalBalance, {
-        currency: fiatCurrency as CurrencyConstants.Currency,
-    })} ${fiatCurrency}`;
-
-    return { formattedTotalBalance };
+    return { formattedTotalBalance, totalBalance, currency };
 };

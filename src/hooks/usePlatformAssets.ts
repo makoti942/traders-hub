@@ -1,39 +1,33 @@
 import { useMemo } from 'react';
 
-import { BrokerCodes, Regulation } from '@/constants';
-import { useUIContext } from '@/providers';
-
-import { useBalance } from './useBalance';
-import { useDerivTradingAccountsList } from './useDerivTradingAccountsList';
+import { useLiveDerivBalance } from './useLiveDerivBalance';
 
 /**
- *
- * @returns @description This hook is used to get the total balance of the Deriv Trading accounts.
- * @example
- * const { totalDerivTradingDemoAccountBalance, totalDerivTradingRealAccountBalance } = usePlatformAssets();
+ * Total balance of Deriv trading accounts from live WebSocket data.
  */
 export const usePlatformAssets = () => {
-    const { data: balanceAll } = useBalance();
-    const { data: tradingAccount, fiatAccount: firstFiatCurrency } = useDerivTradingAccountsList();
+    const { accounts, activeAccount, isAuthorized } = useLiveDerivBalance();
 
-    const { uiState } = useUIContext();
-
-    const { regulation } = uiState;
-
-    const isEURegulation = regulation === Regulation.EU;
-
-    const fiatCurrency = isEURegulation
-        ? tradingAccount?.find(account => account.broker === BrokerCodes.MF)?.currency
-        : firstFiatCurrency;
+    const fiatCurrency = activeAccount?.currency || 'USD';
 
     const totalDerivTradingAccountBalance = useMemo(() => {
-        const total = balanceAll.total ?? {};
+        if (!isAuthorized) {
+            return { demo: 0, real: 0 };
+        }
 
-        return {
-            demo: total.deriv_demo?.amount || 0,
-            real: total.deriv?.amount || 0,
-        };
-    }, [balanceAll.total]);
+        return accounts.reduce(
+            (totals, account) => {
+                if (account.is_virtual) {
+                    totals.demo += account.balance || 0;
+                } else {
+                    totals.real += account.balance || 0;
+                }
+                return totals;
+            },
+            { demo: 0, real: 0 }
+        );
+    }, [accounts, isAuthorized]);
 
     return { totalDerivTradingAccountBalance, fiatCurrency };
 };
+

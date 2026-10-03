@@ -1,6 +1,5 @@
 import { Fragment } from 'react/jsx-runtime';
 
-import { useAuthData } from '@deriv-com/api-hooks';
 import { useDevice } from '@deriv-com/ui';
 
 import {
@@ -12,18 +11,17 @@ import {
     TradersHubHeader,
     TradersHubMobileContent,
 } from '@/components';
-import { useActiveDerivTradingAccount, useIsDIELEnabled, useRegulationFlags } from '@/hooks';
+import { useDerivSession, useIsDIELEnabled, useRegulationFlags } from '@/hooks';
 import { Modals } from '@/modals/Modals';
 
 export const Homepage = () => {
     const { isDesktop } = useDevice();
-    const { isAuthorized } = useAuthData();
+    const { isAuthorized } = useDerivSession();
 
     const { regulationFlags } = useRegulationFlags();
     const { hasActiveDerivAccount } = regulationFlags;
-    const { data: activeTrading } = useActiveDerivTradingAccount();
-    const isDemo = activeTrading?.is_virtual;
-    const isReal = !activeTrading?.is_virtual;
+    const isDemo = isAuthorized;
+    const isReal = isAuthorized;
     const { data: isDIEL } = useIsDIELEnabled();
     const isTotalAssetsVisible = (hasActiveDerivAccount || isDemo) && isAuthorized;
 

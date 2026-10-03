@@ -1,60 +1,48 @@
 import { useMemo } from 'react';
 
-import { useAccountList, useAuthData } from '@deriv-com/api-hooks';
 import { CurrencyConstants, FormatUtils } from '@deriv-com/utils';
 
 import { useBalance, useCurrencyConfig, useSettings } from '.';
+import { useLiveDerivBalance } from './useLiveDerivBalance';
 
 /**
- * Custom hook to get a list of trading accounts
- * @returns {Object} tradingAccounts - List of trading accounts
- * @returns {Object} rest - The rest of the props from useAccountList
+ * Custom hook to get a list of trading accounts with live balances.
  */
 export const useDerivTradingAccountsList = () => {
-    const { data, ...rest } = useAccountList();
     const { data: balanceData } = useBalance();
-    const { activeLoginid } = useAuthData();
+    const { accounts: liveAccounts, isAuthorized, activeLoginid } = useLiveDerivBalance();
     const { getConfig } = useCurrencyConfig();
     const { data: settingsData } = useSettings();
 
     const { formatMoney } = FormatUtils;
 
-    const modifiedAccounts = useMemo(() => {
-        return data?.map(account => {
-            return {
-                ...account,
-                isActive: account.loginid === activeLoginid,
-                /** Account's currency config information */
-                currencyConfig: account.currency ? getConfig(account.currency) : undefined,
-                /** indicating whether the account is a virtual-money account. */
-                isVirtual: Boolean(account.is_virtual),
-                /** The platform of the account */
-                platform: 'deriv' as const,
-            };
-        });
-    }, [data, activeLoginid, getConfig]);
-
-    const modifiedAccountsWithBalance = useMemo(
-        () =>
-            (modifiedAccounts ?? [])?.map(account => {
-                const balance = balanceData?.accounts?.[account.loginid]?.balance ?? 0;
-
+    const modifiedAccountsWithBalance = useMemo(() => {
+        if (isAuthorized && liveAccounts.length) {
+            return liveAccounts.map(account => {
+                const currencyConfig = account.currency ? getConfig(account.currency) : undefined;
                 return {
                     ...account,
-                    balance,
-                    /** The balance of the account in currency format. */
-                    displayBalance: `${formatMoney(balance, {
-                        currency: account.currencyConfig?.display_code as CurrencyConstants.Currency,
-                        decimalPlaces: account.currencyConfig?.fractional_digits ?? 2,
-                        locale: settingsData?.preferred_language ?? 'en',
-                    })} ${account.currencyConfig?.display_code}`,
+                    isActive: account.loginid === activeLoginid,
+                    currencyConfig,
+                    isVirtual: account.is_virtual,
+                    platform: 'deriv' as const,
+                    balance: account.balance,
+                    displayBalance: account.displayBalance ||
+                        `${formatMoney(account.balance, {
+                            currency: currencyConfig?.display_code as CurrencyConstants.Currency,
+                            decimalPlaces: currencyConfig?.fractional_digits ?? 2,
+                            locale: settingsData?.preferred_language ?? 'en',
+                        })} ${currencyConfig?.display_code ?? account.currency}`,
                 };
-            }),
-        [modifiedAccounts, balanceData?.accounts, formatMoney, settingsData?.preferred_language]
-    );
+            });
+        }
+
+        return [] as Array<Record<string, unknown>>;
+    }, [isAuthorized, liveAccounts, activeLoginid, getConfig, formatMoney, settingsData?.preferred_language]);
 
     const fiatAccount =
-        modifiedAccountsWithBalance?.find(account => getConfig(account.currency ?? '')?.isFiat)?.currency ?? 'USD';
+        modifiedAccountsWithBalance?.find((account: any) => getConfig(account.currency ?? '')?.isFiat)?.currency ??
+        'USD';
 
-    return { data: modifiedAccountsWithBalance, fiatAccount, ...rest };
+    return { data: modifiedAccountsWithBalance, fiatAccount };
 };

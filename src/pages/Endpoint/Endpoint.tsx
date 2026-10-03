@@ -1,7 +1,6 @@
 import { Field, FieldProps, Form, Formik, FormikHelpers } from 'formik';
 
 import { Button, Input, Text } from '@deriv-com/ui';
-import { WebSocketUtils } from '@deriv-com/utils';
 
 export const getSocketURL = () => {
     const local_storage_server_url = window.localStorage.getItem('config.server_url');
@@ -23,18 +22,18 @@ export const getSocketURL = () => {
     return server_url;
 };
 
+const DEFAULT_APP_ID = '33UD5Xga7WHSzXFtBYdmr';
+
 interface EndpointProps {
     app_id: string;
     server: string;
 }
 
 export const Endpoint = () => {
-    const { getAppId } = WebSocketUtils;
-
     return (
         <Formik<EndpointProps>
             initialValues={{
-                app_id: getAppId(),
+                app_id: localStorage.getItem('config.app_id') || DEFAULT_APP_ID,
                 server: getSocketURL(),
             }}
             validate={(values: EndpointProps) => {
