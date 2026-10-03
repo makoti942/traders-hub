@@ -1,7 +1,7 @@
 {
     "name": "@deriv/core",
     "version": "0.1.0",
-    "description": "Deriv Core",
+    "description": "Traders Hub",
     "main": "index.js",
     "private": true,
     "scripts": {
@@ -12,12 +12,12 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/deriv-com/derivatives-trader.git"
+        "url": "https://github.com/makoti942/traders-hub.git"
     },
     "keywords": [
         "deriv"
     ],
-    "author": "Deriv",
+    "author": "Makoti Traders",
     "license": "Apache-2.0",
     "bugs": {
         "url": "https://github.com/deriv-com/derivatives-trader/issues"

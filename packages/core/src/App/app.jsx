@@ -9,7 +9,7 @@ import { StoreProvider } from '@deriv/stores';
 import { BreakpointProvider } from '@deriv-com/quill-ui';
 import { getInitialLanguage, initializeI18n, TranslationProvider } from '@deriv-com/translations';
 
-import { clearTokens, exchangeCodeForToken } from 'Services/oauth';
+import { captureClassicOAuthTokensFromUrl, clearTokens, exchangeCodeForToken } from 'Services/oauth';
 import WS from 'Services/ws-methods';
 
 import { FORM_ERROR_MESSAGES } from '../Constants/form-error-messages';
@@ -31,9 +31,16 @@ const App = ({ root_store }) => {
     const language = preferred_language ?? getInitialLanguage();
     const { isBridgeAvailable, sendBridgeEvent } = useMobileBridge();
 
-    // Handle OAuth2 callback — the auth server redirects back to / with ?code=...&state=...
-    // No separate /callback route needed; we handle it inline here on every mount.
+    // Handle OAuth callbacks on every mount:
+    // 1) Classic oauth.deriv.com — tokens in query/hash (token1/acct1/cur1/…)
+    // 2) PKCE auth.deriv.com — ?code=...&state=...
     React.useEffect(() => {
+        const classicCaptured = captureClassicOAuthTokensFromUrl();
+        if (classicCaptured) {
+            window.location.replace('/');
+            return;
+        }
+
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const state = params.get('state');
@@ -61,6 +68,7 @@ const App = ({ root_store }) => {
 
         exchangeCodeForToken(code)
             .then(() => {
+                sessionStorage.setItem('oauth_flow', 'pkce');
                 // Token is now in sessionStorage. Reload to /  so initStore
                 // picks it up on fresh boot — avoids the race where onClientInit
                 // already ran before the token exchange completed.

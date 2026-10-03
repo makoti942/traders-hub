@@ -327,33 +327,57 @@ export default class ClientStore extends BaseStore {
             // Set is_logging_in to true while we wait for authorization
             this.setIsLoggingIn(true);
 
-            // Step 5 of OAuth flow: fetch accounts → pick active account → get OTP WS URL.
-            // The OTP URL embeds auth — once the socket opens and subscribes to balance,
-            // socket-general.js calls authorizeAccount() which completes the login.
-            try {
-                const accounts = await fetchAccounts();
-                const active_account =
-                    accounts.find(a => a.account_id === sessionStorage.getItem('active_loginid')) ||
-                    accounts.find(a => a.account_type === 'demo') ||
-                    accounts[0];
+            const oauth_flow = sessionStorage.getItem('oauth_flow') || 'pkce';
 
-                if (!active_account) throw new Error('No accounts found');
+            if (oauth_flow === 'classic') {
+                // Classic oauth.deriv.com token — connect to v3 WS with token in URL.
+                // Server sends `authorize` on open; socket-general handles it.
+                try {
+                    const app_id =
+                        sessionStorage.getItem('oauth_app_id') ||
+                        localStorage.getItem('oauth_app_id') ||
+                        '1089';
+                    const token = getStoredToken();
+                    const ws_url = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(
+                        app_id
+                    )}&token=${encodeURIComponent(token)}&l=en`;
+                    BinarySocket.setWSUrl(ws_url);
+                    BinarySocket.closeAndOpenNewConnection();
+                    await BinarySocket.wait('authorize');
+                } catch (error) {
+                    // eslint-disable-next-line no-console
+                    console.error('[Auth] Classic auth init failed:', error);
+                    clearTokens();
+                }
+            } else {
+                // Step 5 of OAuth flow: fetch accounts → pick active account → get OTP WS URL.
+                // The OTP URL embeds auth — once the socket opens and subscribes to balance,
+                // socket-general.js calls authorizeAccount() which completes the login.
+                try {
+                    const accounts = await fetchAccounts();
+                    const active_account =
+                        accounts.find(a => a.account_id === sessionStorage.getItem('active_loginid')) ||
+                        accounts.find(a => a.account_type === 'demo') ||
+                        accounts[0];
 
-                sessionStorage.setItem('active_loginid', active_account.account_id);
-                localStorage.setItem('active_loginid', active_account.account_id);
-                localStorage.setItem('account_type', active_account.account_type);
+                    if (!active_account) throw new Error('No accounts found');
 
-                const ws_url = await fetchOTP(active_account.account_id);
-                BinarySocket.setWSUrl(ws_url);
-                BinarySocket.closeAndOpenNewConnection();
+                    sessionStorage.setItem('active_loginid', active_account.account_id);
+                    localStorage.setItem('active_loginid', active_account.account_id);
+                    localStorage.setItem('account_type', active_account.account_type);
 
-                // Wait for balance response which serves as authorization.
-                // socket-general.js processes the balance response and calls authorizeAccount().
-                await BinarySocket.wait('balance');
-            } catch (error) {
-                // eslint-disable-next-line no-console
-                console.error('[Auth] Account init failed:', error);
-                clearTokens();
+                    const ws_url = await fetchOTP(active_account.account_id);
+                    BinarySocket.setWSUrl(ws_url);
+                    BinarySocket.closeAndOpenNewConnection();
+
+                    // Wait for balance response which serves as authorization.
+                    // socket-general.js processes the balance response and calls authorizeAccount().
+                    await BinarySocket.wait('balance');
+                } catch (error) {
+                    // eslint-disable-next-line no-console
+                    console.error('[Auth] Account init failed:', error);
+                    clearTokens();
+                }
             }
         }
 

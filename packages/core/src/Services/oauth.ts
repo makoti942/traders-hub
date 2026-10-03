@@ -1,4 +1,10 @@
-import { getAuthBaseUrl, getOAuthAppId, getOAuthClientId, getOAuthRedirectUri } from '@deriv/shared';
+import {
+    getAuthBaseUrl,
+    getOAuthAppId,
+    getOAuthClientId,
+    getOAuthClassicBaseUrl,
+    getOAuthRedirectUri,
+} from '@deriv/shared';
 
 // ---------------------------------------------------------------------------
 // PKCE helpers
@@ -52,7 +58,32 @@ export const clearPKCEVerifier = (): void => {
 // OAuth URL generation
 // ---------------------------------------------------------------------------
 
+/**
+ * Builds the OAuth authorize URL.
+ * - PKCE (auth.deriv.com) when OAUTH_CLIENT_ID is set
+ * - Classic (oauth.deriv.com + app_id) when only oauth_app_id is configured
+ */
 export const generateOAuthURL = async (): Promise<string> => {
+    const redirect_uri = getOAuthRedirectUri();
+    const oauth_app_id = getOAuthAppId();
+    const client_id = getOAuthClientId();
+
+    if (!client_id && oauth_app_id) {
+        sessionStorage.setItem('oauth_flow', 'classic');
+        sessionStorage.setItem('oauth_app_id', oauth_app_id);
+        const params = new URLSearchParams({
+            app_id: oauth_app_id,
+            l: 'en',
+        });
+        if (redirect_uri) params.set('redirect_uri', redirect_uri);
+        return `${getOAuthClassicBaseUrl()}/oauth2/authorize?${params}`;
+    }
+
+    if (!client_id) {
+        throw new Error('OAuth is not configured: set OAUTH_CLIENT_ID or auth.oauth_app_id in brand.config.json');
+    }
+
+    sessionStorage.setItem('oauth_flow', 'pkce');
     const verifier = generateCodeVerifier();
     const challenge = await generateCodeChallenge(verifier);
     storePKCEVerifier(verifier);
@@ -62,18 +93,98 @@ export const generateOAuthURL = async (): Promise<string> => {
 
     const params = new URLSearchParams({
         response_type: 'code',
-        client_id: getOAuthClientId(),
-        redirect_uri: getOAuthRedirectUri(),
+        client_id,
+        redirect_uri,
         scope: 'trade',
         state: csrf_token,
         code_challenge: challenge,
         code_challenge_method: 'S256',
     });
-    const oauth_app_id = getOAuthAppId();
     if (oauth_app_id) params.set('app_id', oauth_app_id);
 
     return `${getAuthBaseUrl()}/oauth2/auth?${params}`;
 };
+
+/**
+ * Captures classic oauth.deriv.com tokens (token1/acct1/cur1/…) from the
+ * redirect URL and stores them for the WebSocket session.
+ * Returns true when a token was captured.
+ */
+export const captureClassicOAuthTokensFromUrl = (): boolean => {
+    if (typeof window === 'undefined') return false;
+
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const pick = (...keys: string[]) => {
+        for (const key of keys) {
+            const value = search.get(key) || hash.get(key);
+            if (value) return value;
+        }
+        return '';
+    };
+
+    const token = pick('token1', 'token', 'oauth_token');
+    if (!token) return false;
+
+    const loginid = pick('acct1', 'acct', 'loginid');
+    const currency = pick('cur1', 'cur', 'currency');
+    const account_list = pick('account_list');
+
+    // Persist account map for multi-account UIs (loginid -> token/currency)
+    const accounts: Record<string, { token: string; currency: string; is_virtual: boolean }> = {};
+    if (loginid) {
+        accounts[loginid] = {
+            token,
+            currency: currency || 'USD',
+            is_virtual: /^(VRT|DEM)/.test(loginid),
+        };
+    }
+    if (account_list) {
+        for (const entry of account_list.split(',')) {
+            const [id, cur] = entry.split(':');
+            if (!id || accounts[id]) continue;
+            accounts[id] = {
+                token: id === loginid ? token : token,
+                currency: cur || currency || 'USD',
+                is_virtual: /^(VRT|DEM)/.test(id),
+            };
+        }
+    }
+
+    sessionStorage.setItem('oauth_flow', 'classic');
+    if (oauth_app_id_from_session()) {
+        // keep existing
+    } else {
+        sessionStorage.setItem('oauth_app_id', getOAuthAppId());
+    }
+    storeTokens(token);
+    if (loginid) {
+        localStorage.setItem('active_loginid', loginid);
+        sessionStorage.setItem('active_loginid', loginid);
+        const is_virtual = /^(VRT|DEM)/.test(loginid);
+        localStorage.setItem('account_type', is_virtual ? 'demo' : 'real');
+    }
+    localStorage.setItem('client.accounts', JSON.stringify(accounts));
+    sessionStorage.setItem('client.accounts', JSON.stringify(accounts));
+    if (currency) {
+        localStorage.setItem('account_currency', currency);
+    }
+
+    // Strip tokens from the address bar
+    const url = new URL(window.location.href);
+    for (const key of ['token1', 'token', 'oauth_token', 'acct1', 'acct', 'loginid', 'cur1', 'cur', 'currency', 'account_list', 'code', 'state']) {
+        url.searchParams.delete(key);
+        // hash keys handled by clearing hash when it contained token params
+    }
+    if (window.location.hash && /token|acct|cur=/.test(window.location.hash)) {
+        url.hash = '';
+    }
+    window.history.replaceState({}, document.title, url.toString());
+
+    return true;
+};
+
+const oauth_app_id_from_session = (): string => sessionStorage.getItem('oauth_app_id') || '';
 
 // ---------------------------------------------------------------------------
 // Token exchange

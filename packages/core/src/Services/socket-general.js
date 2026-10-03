@@ -53,6 +53,13 @@ const BinarySocketGeneral = (() => {
         handleError(response);
 
         switch (response.msg_type) {
+            case 'authorize':
+                // Classic OAuth WS flow — authorize arrives on connect with account details.
+                if (response.authorize && !client_store.is_authorize) {
+                    authorizeAccount(response);
+                    subscribeBalance();
+                }
+                break;
             case 'balance':
                 if (response.balance && response.balance.loginid) {
                     if (!client_store.is_authorize) {

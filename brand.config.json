@@ -1,34 +1,34 @@
 {
-    "brand_name": "Trading Platform",
-    "brand_logo": "brand/platform-logo.svg",
-    "brand_logo_dark": "brand/platform-logo.svg",
+    "brand_name": "Traders Hub",
+    "brand_logo": "brand/brand-logo.svg",
+    "brand_logo_dark": "brand/brand-logo-dark.svg",
     "brand_domain": "deriv.com",
     "brand_hostname": {
-        "staging": "staging.dtrader-template.pages.dev",
-        "production": "dtrader-template.pages.dev"
+        "staging": "localhost",
+        "production": "traders-hub-jet.vercel.app"
     },
     "platform": {
-        "name": "Trading Platform",
-        "description": "A whole new trading experience on a powerful yet easy to use platform.",
+        "name": "Traders Hub",
+        "description": "Trade options, multipliers, and more on a powerful derivatives platform.",
         "logo": "brand/platform-logo.svg",
-        "home_url": "https://home.deriv.com/dashboard",
+        "home_url": "https://traders-hub-jet.vercel.app",
         "help_centre_url": "https://trade.deriv.com/help-centre"
     },
     "signup_url": {
-        "production": "https://home.deriv.com/dashboard/signup",
-        "staging": "https://staging-home.deriv.com/dashboard/signup"
+        "production": "https://traders-hub-jet.vercel.app",
+        "staging": "http://localhost:8443"
     },
     "deposit_url": {
-        "staging": "https://staging.dtrader-template.pages.dev/transfer",
-        "production": "https://dtrader-template.pages.dev/transfer"
+        "staging": "http://localhost:8443/transfer",
+        "production": "https://traders-hub-jet.vercel.app/transfer"
     },
     "auth": {
         "staging": "https://staging-auth.deriv.com",
         "production": "https://auth.deriv.com",
-        "oauth_scopes": ["trade", "account_manage"],
-        "oauth_redirect_uri_staging": "https://staging.dtrader-template.pages.dev",
-        "oauth_redirect_uri_production": "https://dtrader-template.pages.dev",
-        "oauth_app_id": ""
+        "oauth_scopes": ["read", "trade", "account_manage"],
+        "oauth_redirect_uri_staging": "http://localhost:8443",
+        "oauth_redirect_uri_production": "https://traders-hub-jet.vercel.app",
+        "oauth_app_id": "341bZEUBwkma4knaRrwuh"
     },
     "derivws": {
         "staging": "https://staging-api.derivws.com",
@@ -47,7 +47,7 @@
         "production": 16929
     },
     "colors": {
-        "primary": "#118e1c",
+        "primary": "#ff444f",
         "secondary": "#85acb0",
         "tertiary": "#ff6b35",
         "success": "#4bb4b3",

@@ -1,0 +1,25 @@
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "framework": null,
+    "installCommand": "npm run bootstrap",
+    "buildCommand": "npm run vercel-build",
+    "outputDirectory": "packages/core/dist",
+    "regions": ["iad1"],
+    "env": {
+        "NODE_VERSION": "24.18.0"
+    },
+    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                { "key": "X-Content-Type-Options", "value": "nosniff" },
+                { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+            ]
+        },
+        {
+            "source": "/sw.js",
+            "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+        }
+    ]
+}

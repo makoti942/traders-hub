@@ -123,22 +123,46 @@ export const getTrustedDomainName = (): string => {
     return domain === getBrandDomain() ? domain : 'deriv.com';
 };
 
+const ALLOWED_REDIRECT_HOSTNAME_PATTERNS = [
+    /^localhost$/,
+    /^127\.0\.0\.1$/,
+    /^[a-zA-Z0-9-]+\.vercel\.app$/,
+    /^[a-zA-Z0-9-]+\.github\.io$/,
+    /^[a-zA-Z0-9-]+\.pages\.dev$/,
+    /^[a-zA-Z0-9-]+\.derivatives-trader\.pages\.dev$/,
+];
+
 /**
  * Returns window.location.hostname for use as an OAuth redirect parameter,
- * but only if the current hostname belongs to a known brand domain or a
- * recognised Cloudflare Pages preview deployment.
+ * but only if the current hostname belongs to a known brand domain, a
+ * recognised local host, or a recognised preview host (Vercel / GitHub / CF Pages).
  * Returns empty string on unrecognised hostnames to prevent open-redirect
  * attacks where an attacker-controlled copy of the app injects a redirect
  * back to their domain after authentication.
  */
-const CLOUDFLARE_PAGES_PATTERN = /^[a-zA-Z0-9-]+\.derivatives-trader\.pages\.dev$/;
 export const getRedirectHostname = (): string => {
     if (typeof window === 'undefined') return '';
     const hostname = window.location.hostname;
     const domain = getDomainName();
     if (domain === getBrandDomain()) return hostname;
-    if (CLOUDFLARE_PAGES_PATTERN.test(hostname)) return hostname;
+    if (hostname === config_data.brand_hostname.production) return hostname;
+    if (hostname === config_data.brand_hostname.staging) return hostname;
+    if (ALLOWED_REDIRECT_HOSTNAME_PATTERNS.some(pattern => pattern.test(hostname))) return hostname;
     return '';
+};
+
+/**
+ * Prefer the live origin on allowed hostnames so OAuth redirect_uri matches
+ * the URL bar exactly (critical for Vercel previews and localhost).
+ */
+export const getOAuthRedirectUri = (): string => {
+    if (typeof window !== 'undefined' && getRedirectHostname()) {
+        return window.location.origin;
+    }
+    const auth = config_data.auth as Record<string, unknown>;
+    return isProduction()
+        ? ((auth.oauth_redirect_uri_production as string) ?? '')
+        : ((auth.oauth_redirect_uri_staging as string) ?? '');
 };
 
 /**
@@ -159,26 +183,23 @@ export const getAuthBaseUrl = (): string => {
 };
 
 export const getOAuthClientId = (): string => {
-    const client_id = process.env.OAUTH_CLIENT_ID;
-    if (!client_id)
-        throw new Error(
-            'OAUTH_CLIENT_ID is not set. Add it to your .env file for local dev or GitHub Environment secrets for CI.'
-        );
-    return client_id;
+    // Optional — empty string falls back to classic oauth.deriv.com + oauth_app_id.
+    return process.env.OAUTH_CLIENT_ID || '';
 };
 
 /**
- * Gets the OAuth2 redirect URI for the current environment
+ * Gets the OAuth app id (API v1 app id string) from brand.config.json
  */
 export const getOAuthAppId = (): string => {
     return ((config_data.auth as Record<string, unknown>).oauth_app_id as string) ?? '';
 };
 
-export const getOAuthRedirectUri = (): string => {
-    const auth = config_data.auth as Record<string, unknown>;
-    return isProduction()
-        ? ((auth.oauth_redirect_uri_production as string) ?? '')
-        : ((auth.oauth_redirect_uri_staging as string) ?? '');
+/**
+ * Classic Deriv OAuth host (API tokens returned in the redirect URL).
+ * Used when OAUTH_CLIENT_ID is not set (no PKCE client from Deriv).
+ */
+export const getOAuthClassicBaseUrl = (): string => {
+    return 'https://oauth.deriv.com';
 };
 
 /**
