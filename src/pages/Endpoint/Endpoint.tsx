@@ -22,7 +22,7 @@ export const getSocketURL = () => {
     return server_url;
 };
 
-const DEFAULT_APP_ID = '33UD5Xga7WHSzXFtBYdmr';
+const DEFAULT_APP_ID = '341bZEUBwkma4knaRrwuh';
 
 interface EndpointProps {
     app_id: string;

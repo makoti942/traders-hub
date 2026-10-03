@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 
 import { routes } from '@/routes';
-import { parseOAuthRedirect, storeOAuthAccounts } from '@/utils/derivAuth';
+import { captureOAuthTokensFromUrl } from '@/utils/derivAuth';
 
 export const Redirect = () => {
     const { search } = useLocation();
@@ -15,10 +15,7 @@ export const Redirect = () => {
         } catch {}
     }
 
-    const oauthAccounts = parseOAuthRedirect(search);
-    if (oauthAccounts.length) {
-        storeOAuthAccounts(oauthAccounts);
-    }
+    captureOAuthTokensFromUrl();
 
     if (actionParam === 'signup') {
         return <Navigate to={routes.signup + search} />;

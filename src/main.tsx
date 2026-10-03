@@ -11,9 +11,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import { CFDProvider, RealAccountCreationProvider, UIProvider } from '@/providers';
 import { startInitPerformanceTimers } from '@/utils';
+import { captureOAuthTokensFromUrl } from '@/utils/derivAuth';
 
 import { Header } from './components/Header/Header';
-import { useActiveDerivTradingAccount } from './hooks/useActiveDerivTradingAccount';
 import App from './App';
 
 import './index.css';
@@ -21,14 +21,12 @@ import './index.css';
 const queryClient = new QueryClient();
 
 const AnalyticsConfigurator = () => {
-    const { data: activeTradingAccount } = useActiveDerivTradingAccount();
     const { data: websiteStatusData } = useWebsiteStatus();
     const { isDesktop, isMobile, isTablet } = useDevice();
     const { getAppId } = WebSocketUtils;
 
     useEffect(() => {
         if (websiteStatusData?.clients_country) {
-            const accountType = activeTradingAccount?.is_virtual ? 'demo' : 'real';
             const clientCountry = websiteStatusData.clients_country;
 
             if (import.meta.env.VITE_RUDDERSTACK_KEY) {
@@ -37,7 +35,7 @@ const AnalyticsConfigurator = () => {
                 };
                 Analytics.initialise(config);
                 const attributes = {
-                    account_type: accountType,
+                    account_type: 'demo',
                     app_id: getAppId(),
                     device_type:
                         (isDesktop && 'Desktop') || (isMobile && 'Mobile') || (isTablet && 'Tablet') || 'Mobile',
@@ -48,7 +46,7 @@ const AnalyticsConfigurator = () => {
                 Analytics.setAttributes(attributes);
             }
         }
-    }, [activeTradingAccount, getAppId, isDesktop, isMobile, isTablet, websiteStatusData]);
+    }, [getAppId, isDesktop, isMobile, isTablet, websiteStatusData]);
 
     return null;
 };
@@ -58,6 +56,8 @@ const root = container ? ReactDOM.createRoot(container) : null;
 startInitPerformanceTimers();
 
 const signupRoute = window.location.pathname === '/signup';
+
+captureOAuthTokensFromUrl();
 
 root?.render(
     <React.StrictMode>

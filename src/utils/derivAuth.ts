@@ -14,7 +14,7 @@ export type TDerivStoredAccount = {
 const ACCOUNTS_KEY = 'client.accounts';
 const ACTIVE_LOGIN_KEY = 'active_loginid';
 const ACCOUNT_TYPE_KEY = 'account_type';
-const DEFAULT_APP_ID = '33UD5Xga7WHSzXFtBYdmr';
+const DEFAULT_APP_ID = '341bZEUBwkma4knaRrwuh';
 
 export const isDemoLoginid = (loginid: string): boolean =>
     /^(VRT|VRW|DEM|DOT|CR9|CRW)/.test(loginid) ||
@@ -50,6 +50,28 @@ export const getSocketUrl = (loginid?: string): string => {
 export const getOAuthLoginUrl = (): string => {
     const appId = getAppId();
     return `https://oauth.deriv.com/oauth2/authorize?app_id=${encodeURIComponent(appId)}&l=en`;
+};
+
+/** Capture OAuth tokens from any URL (root or /redirect) and return true if stored. */
+export const captureOAuthTokensFromUrl = (): boolean => {
+    try {
+        const search = window.location.search;
+        if (!search || !search.includes('token')) return false;
+
+        const accounts = parseOAuthRedirect(search);
+        if (!accounts.length) return false;
+
+        storeOAuthAccounts(accounts);
+
+        const url = new URL(window.location.href);
+        ['acct1', 'token1', 'cur1', 'acct2', 'token2', 'cur2', 'acct3', 'token3', 'cur3', 'acct4', 'token4', 'cur4', 'acct5', 'token5', 'cur5'].forEach(p => {
+            url.searchParams.delete(p);
+        });
+        window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+        return true;
+    } catch {
+        return false;
+    }
 };
 
 export const parseOAuthRedirect = (search: string): TDerivOAuthAccount[] => {
