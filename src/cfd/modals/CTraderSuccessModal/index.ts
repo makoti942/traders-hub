@@ -1,1 +1,0 @@
-export { CTraderSuccessModal } from './CTraderSuccessModal';

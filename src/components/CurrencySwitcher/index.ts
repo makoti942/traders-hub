@@ -1,1 +1,0 @@
-export { CurrencySwitcher } from './CurrencySwitcher';

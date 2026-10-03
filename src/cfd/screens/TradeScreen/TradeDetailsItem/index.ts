@@ -1,1 +1,0 @@
-export { TradeDetailsItem } from './TradeDetailsItem';

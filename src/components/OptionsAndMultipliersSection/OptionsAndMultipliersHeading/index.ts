@@ -1,1 +1,0 @@
-export { OptionsAndMultipliersHeading } from './OptionsAndMultipliersHeading';

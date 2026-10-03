@@ -1,1 +1,0 @@
-export { AccountOpeningSuccessModal } from './AccountOpeningSuccessModal';

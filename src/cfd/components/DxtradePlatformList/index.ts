@@ -1,1 +1,0 @@
-export { DxtradePlatformList } from './DxtradePlatformList';

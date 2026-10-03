@@ -1,1 +1,0 @@
-export { TotalAssetsLoader } from './TotalAssetsLoader';
