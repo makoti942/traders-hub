@@ -1,28 +1,24 @@
 import { useEffect } from 'react';
 
-import { useAuthData } from '@deriv-com/api-hooks';
-
 import { Regulation } from '@/constants';
-import { useActiveDerivTradingAccount, useDerivTradingAccountsList, useRegulationFlags } from '@/hooks';
+import { useDerivSession, useDerivTradingAccountsList, useRegulationFlags } from '@/hooks';
 import { useUIContext } from '@/providers';
+
 /**
- * @description This hook contains the logic that is used to switch between EU and non-EU accounts
- * @returns  {buttons: {label: string}[], handleButtonClick: (label: string) => void}
- * @example
- * const { buttons, handleButtonClick } = useRegulationSwitcher();
+ * Switch between EU and non-EU accounts using the live OAuth session.
  */
 export const useRegulationSwitcher = () => {
-    const { switchAccount } = useAuthData();
+    const { switchAccount } = useDerivSession();
     const { data: tradingAccountsList } = useDerivTradingAccountsList();
     const { setUIState, uiState } = useUIContext();
     const currentRegulation = uiState.regulation;
     const { regulationFlags } = useRegulationFlags();
     const { isEU, isHighRisk } = regulationFlags;
 
-    const realCRAccount = tradingAccountsList?.find(account => account.loginid.startsWith('CR'))?.loginid ?? '';
-    const realMFAccount = tradingAccountsList?.find(account => account.loginid.startsWith('MF'))?.loginid ?? '';
+    const realCRAccount = tradingAccountsList?.find(account => String(account.loginid).startsWith('CR'))?.loginid ?? '';
+    const realMFAccount = tradingAccountsList?.find(account => String(account.loginid).startsWith('MF'))?.loginid ?? '';
 
-    const { data: activeTrading } = useActiveDerivTradingAccount();
+    const activeLoginid = tradingAccountsList?.find(account => account.isActive)?.loginid || '';
 
     const buttons = [{ label: Regulation.NonEU }, { label: Regulation.EU }];
 
@@ -33,25 +29,25 @@ export const useRegulationSwitcher = () => {
                     regulation: Regulation.NonEU,
                 });
                 if (realCRAccount) {
-                    switchAccount(realCRAccount);
+                    switchAccount(String(realCRAccount));
                 }
             } else {
                 setUIState({
                     regulation: Regulation.EU,
                 });
                 if (realMFAccount) {
-                    switchAccount(realMFAccount);
+                    switchAccount(String(realMFAccount));
                 }
             }
         }
     };
 
     useEffect(() => {
-        if (activeTrading?.loginid.startsWith('CR') || isHighRisk) {
+        if (activeLoginid.startsWith('CR') || isHighRisk) {
             setUIState({
                 regulation: Regulation.NonEU,
             });
-        } else if (activeTrading?.loginid.startsWith('MF') || isEU) {
+        } else if (activeLoginid.startsWith('MF') || isEU) {
             setUIState({
                 regulation: Regulation.EU,
             });
@@ -60,9 +56,7 @@ export const useRegulationSwitcher = () => {
     }, []);
 
     return {
-        // Contains the array of buttons to be rendered in the switcher E.g. [{label: 'EU'}, {label: 'Non-EU'}]
         buttons,
-        // Contains the function to be called when a button is clicked and to update the state E.g. (label: string) => void
         handleButtonClick,
     };
 };

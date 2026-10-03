@@ -3,14 +3,14 @@ import { useMemo } from 'react';
 import { useDerivTradingAccountsList } from '.';
 
 /**
- * Custom hook to get the active trading account (live balance after OAuth).
+ * Active trading account from live OAuth session.
  */
 export const useActiveDerivTradingAccount = () => {
     const { data } = useDerivTradingAccountsList();
 
     const activeTradingAccount = useMemo(() => {
-        return data?.find((trading: any) => trading.isActive) || data?.[0] || null;
+        return data.find(trading => trading.isActive) || data[0] || null;
     }, [data]);
 
-    return { data: activeTradingAccount };
+    return { data: activeTradingAccount, isSuccess: Boolean(activeTradingAccount) };
 };

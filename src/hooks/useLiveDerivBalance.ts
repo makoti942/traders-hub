@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { FormatUtils } from '@deriv-com/utils';
 
@@ -6,45 +6,37 @@ import { useDerivSession } from './useDerivSession';
 
 /**
  * Live Deriv balance via WebSocket authorize + balance subscription.
- * Works on custom domains after OAuth returns tokens to /redirect.
  */
 export const useLiveDerivBalance = () => {
-    const { isAuthorized, accounts, activeLoginid, activeAccount, activeBalance, live } = useDerivSession();
+    const session = useDerivSession();
     const { formatMoney } = FormatUtils;
-    const currency = activeAccount?.currency || live?.currency || 'USD';
+    const currency = session.activeAccount?.currency || session.live?.currency || 'USD';
 
     const accountsWithBalance = useMemo(() => {
-        const balanceByLogin = new Map<string, number>();
-        live?.accountList?.forEach(acc => balanceByLogin.set(acc.loginid, acc.balance));
-        if (activeBalance > 0 && activeLoginid) {
-            balanceByLogin.set(activeLoginid, activeBalance);
-        }
-
-        return accounts.map(acc => {
-            const balance = balanceByLogin.get(acc.loginid) ?? 0;
+        return session.accounts.map(acc => {
+            const balance = acc.balance || 0;
             return {
                 ...acc,
                 balance,
-                displayBalance: `${formatMoney(balance, { currency: currency as never, decimalPlaces: 2 })} ${acc.currency}`,
+                displayBalance: `${formatMoney(balance, { currency: currency as never, decimalPlaces: 2 })} ${acc.currency || currency}`,
             };
         });
-    }, [accounts, live, activeBalance, activeLoginid, currency, formatMoney]);
+    }, [session.accounts, currency, formatMoney]);
 
     const formattedActiveBalance = useMemo(() => {
-        if (!isAuthorized) return '';
-        const amount = activeBalance || activeAccount ? activeBalance : 0;
-        return `${formatMoney(amount, { currency: currency as never, decimalPlaces: 2 })} ${currency}`;
-    }, [activeBalance, activeAccount, currency, formatMoney, isAuthorized]);
+        if (!session.isAuthorized) return '';
+        return `${formatMoney(session.activeBalance, { currency: currency as never, decimalPlaces: 2 })} ${currency}`;
+    }, [session.activeBalance, session.isAuthorized, currency, formatMoney]);
 
     return {
-        isAuthorized,
+        isAuthorized: session.isAuthorized,
         accounts: accountsWithBalance,
-        activeLoginid,
-        activeAccount,
-        activeBalance,
+        activeLoginid: session.activeLoginid,
+        activeAccount: session.activeAccount,
+        activeBalance: session.activeBalance,
         formattedActiveBalance,
         currency,
-        rawLive: live,
+        rawLive: session.live,
     };
 };
 

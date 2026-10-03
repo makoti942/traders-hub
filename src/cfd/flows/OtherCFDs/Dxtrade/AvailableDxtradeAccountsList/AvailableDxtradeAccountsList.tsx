@@ -37,7 +37,7 @@ export const AvailableDxtradeAccountsList = () => {
 
     const TrailingButton = () => <TradingAccountCardLightButton onSubmit={trailingButtonClick} />;
 
-    const title = getCfdsAccountTitle(PlatformDetails.dxtrade.title, activeTradingAccount?.isVirtual);
+    const title = getCfdsAccountTitle(PlatformDetails.dxtrade.title, Boolean(activeTradingAccount?.isVirtual));
 
     const trailingButtonClick = () => {
         if (!isAuthorized) {

@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { useAuthData } from '@deriv-com/api-hooks';
-
 import { Regulation } from '@/constants';
 import { useUIContext } from '@/providers';
 import { startPerformanceEventTimer } from '@/utils';
 
 import {
     useActiveDerivTradingAccount,
+    useDerivSession,
     useDerivTradingAccountsList,
     useIsDIELEnabled,
     useQueryParams,
@@ -22,17 +21,13 @@ const accountTypes = [
 type TAccountType = (typeof accountTypes)[number];
 
 /**
- * @description This hook contains the logic that is used to switch between demo and real accounts
- * @returns {selected: {label: string, value: string}, selectAccount: (account: TAccount) => void}
- * @example
- * const { selected, selectAccount } = useAccountSwitcher();
- * selectAccount({ label: 'Demo', value: 'demo' });
+ * Switch between demo and real accounts using the live OAuth session.
  */
 export const useAccountSwitcher = () => {
     const { data: tradingAccountsList } = useDerivTradingAccountsList();
     const { data: activeTradingAccount } = useActiveDerivTradingAccount();
     const { setUIState } = useUIContext();
-    const { switchAccount } = useAuthData();
+    const { switchAccount } = useDerivSession();
     const activeAccountType = activeTradingAccount?.is_virtual ? accountTypes[0].value : accountTypes[1].value;
     const activeType = accountTypes.find(account => account.value === activeAccountType);
     const [selectedAccount, setSelected] = useState(activeType);
@@ -71,10 +66,9 @@ export const useAccountSwitcher = () => {
                 if (account.value === accountTypes[0].value)
                     startPerformanceEventTimer('switch_from_real_to_demo_time');
                 else startPerformanceEventTimer('switch_from_demo_to_real_time');
-                switchAccount(loginId);
+                switchAccount(String(loginId));
             }
 
-            // Open the RealAccountCreation modal if the user is in the EU and is switching to a real account
             if (isEU && openModal && account.value === 'real' && !hasActiveDerivAccount) {
                 openModal('RealAccountCreation');
             }
@@ -83,11 +77,8 @@ export const useAccountSwitcher = () => {
     );
 
     return {
-        // selected: {label: string, value: string}
         selectedAccount,
-        // selectAccount: (account: TAccount) => void
         setSelectedAccount,
-        // accountTypes: {label: Demo | Real, value: demo | real}[]
         accountTypes,
     };
 };

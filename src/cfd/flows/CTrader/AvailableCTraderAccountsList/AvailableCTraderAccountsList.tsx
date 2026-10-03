@@ -36,7 +36,7 @@ export const AvailableCTraderAccountsList = () => {
     const { getOauthURL } = URLUtils;
 
     const accountType = activeTradingAccount?.is_virtual ? 'demo' : 'real';
-    const title = getCfdsAccountTitle(PlatformDetails.ctrader.title, activeTradingAccount?.isVirtual);
+    const title = getCfdsAccountTitle(PlatformDetails.ctrader.title, Boolean(activeTradingAccount?.isVirtual));
 
     const onSubmit = () => {
         if (!isAuthorized) {

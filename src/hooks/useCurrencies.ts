@@ -40,10 +40,13 @@ export const useCurrencies = () => {
     // Check if the currency is already added to the account list to disable the currency
     const isAdded = useCallback(
         (currency: string) => {
-            const currencyAccount = tradingAccountsList?.find(account => account.currency === currency);
+            const currencyAccount = tradingAccountsList?.find((account: { currency?: string }) => account.currency === currency);
             if (!currencyAccount) return false;
 
-            const { currency: accountCurrency, landing_company_name: landingCompany } = currencyAccount;
+            const { currency: accountCurrency, landing_company_name: landingCompany } = currencyAccount as {
+                currency?: string;
+                landing_company_name?: string;
+            };
 
             return accountCurrency === currency && landingCompany !== 'virtual';
         },
@@ -84,13 +87,14 @@ export const useCurrencies = () => {
 
     // Get the current account currency with its config and isAdded status
     const currentAccountCurrencyConfig = useMemo(() => {
-        if (!activeDerivTradingAccount?.currency || !websiteStatusData?.currencies_config) return;
+        const currencyCode = (activeDerivTradingAccount as { currency?: string } | null)?.currency;
+        if (!currencyCode || !websiteStatusData?.currencies_config) return;
 
         return {
-            ...websiteStatusData?.currencies_config[activeDerivTradingAccount?.currency],
-            id: activeDerivTradingAccount?.currency,
+            ...websiteStatusData?.currencies_config[currencyCode],
+            id: currencyCode,
         };
-    }, [activeDerivTradingAccount?.currency, websiteStatusData?.currencies_config]);
+    }, [activeDerivTradingAccount, websiteStatusData?.currencies_config]);
 
     // Get the added fiat currency with its config
     const addedFiatCurrency = useMemo(() => {

@@ -67,8 +67,8 @@ export const CurrencySwitcher = () => {
     const { icon, text } = IconToCurrencyMapper[iconCurrency];
 
     const displayBalance = activeAccount
-        ? `${activeAccount.balance?.toFixed?.(2) ?? activeAccount.balance} ${activeAccount.currency}`
-        : undefined;
+        ? `${Number(activeAccount.balance ?? 0).toFixed(2)} ${activeAccount.currency || 'USD'}`
+        : '0.00 USD';
 
     return (
         <div className='flex items-center justify-between w-full gap-16 p-16 border-solid rounded-default border-1 border-system-light-active-background lg:w-auto lg:shrink-0'>
